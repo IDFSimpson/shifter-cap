@@ -1,0 +1,13 @@
+# Ignore OpenSCAD generated files
+*.stl
+*.off
+*.csg
+*.3mf
+*.amf
+
+# Backup and temporary files
+*~
+*.bak
+.DS_Store
+Thumbs.db
+

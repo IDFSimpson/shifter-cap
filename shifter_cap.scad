@@ -17,7 +17,8 @@ cap_height = 2;
 show_base_outline = false;
 
 // Screw tube parameters
-tube_outer_diameter = 7;
+screw_head_diameter = 7;
+tube_outer_diameter = screw_head_diameter + 1;
 screw_diameter = 3.2;
 tube_depth = dome_height - 2;
 screw_positions = [
@@ -47,6 +48,12 @@ module dome(height, layers, wall_offset = 0) {
                         scale([svg_scale, svg_scale, 1])
                             import(file = silhouette, center = true);
     }
+}
+
+module void_screw_hole(depth,screw,screw_head) {
+    cylinder(h = depth + 10, d = screw, $fn = 30);
+    translate([0, 0, 1])
+        cylinder(h = tube_depth + 10, d = screw_head, $fn = 30);
 }
 
 module void_trigger_slot(cutout_width = 22.5, cutout_height = 6) {
@@ -85,7 +92,7 @@ difference() {
         // Drill screw holes
         for (pos = screw_positions) {
             translate([pos.x, pos.y, dome_height - tube_depth - 0.1])
-                cylinder(h = tube_depth + 10, d = screw_diameter, $fn = 30);
+                void_screw_hole(tube_depth, screw_diameter, screw_head_diameter);
         }
     }
 

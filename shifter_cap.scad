@@ -9,10 +9,10 @@ svg_scale = 0.782;  // Adjust to match actual dimensions
 
 // Dome parameters
 layers = 30;
-dome_height = 12;
+dome_height = 17.5;
 silhouette = "left_shifter_silhouette.svg";
 outline = "left_shifter_outline.svg";
-wall_thickness = 2;
+wall_thickness = 1;
 cap_height = 2;
 show_base_outline = false;
 
@@ -20,11 +20,10 @@ show_base_outline = false;
 screw_head_diameter = 7;
 tube_outer_diameter = screw_head_diameter + 1;
 screw_diameter = 3.2;
-tube_depth = dome_height - 2;
 screw_positions = [
-    [-20.2, -24.1],
-    [-15.6, 19]
-];
+    [-20.2, -24.1, 4],
+    [-15.6, 19, 1]
+];          //[x,y,distance_from_bottom] (3rd is a bit naff)
 
 // Cutout parameters
 trigger_slot_cutout_width = 22.5;
@@ -50,11 +49,6 @@ module dome(height, layers, wall_offset = 0) {
     }
 }
 
-module void_screw_hole(depth,screw,screw_head) {
-    cylinder(h = depth + 10, d = screw, $fn = 30);
-    translate([0, 0, 1])
-        cylinder(h = tube_depth + 10, d = screw_head, $fn = 30);
-}
 
 module void_trigger_slot(cutout_width = 22.5, cutout_height = 6) {
             cube([cutout_width, 10, cutout_height], center = true);
@@ -79,6 +73,7 @@ difference() {
 
                 // Tubes extending above dome
                 for (pos = screw_positions) {
+                    tube_depth = dome_height - pos.z;
                     translate([pos.x, pos.y, dome_height - tube_depth])
                         cylinder(h = tube_depth + 5, d = tube_outer_diameter, $fn = 40);
                 }
@@ -91,8 +86,12 @@ difference() {
 
         // Drill screw holes
         for (pos = screw_positions) {
-            translate([pos.x, pos.y, dome_height - tube_depth - 0.1])
-                void_screw_hole(tube_depth, screw_diameter, screw_head_diameter);
+            tube_depth = dome_height - pos.z;
+            translate([pos.x, pos.y, dome_height - tube_depth - 0.1]){
+                cylinder(h = tube_depth + 10, d = screw_diameter, $fn = 30);
+                translate([0, 0, 1])
+                    cylinder(h = tube_depth + 10, d = screw_head_diameter, $fn = 30);
+            }
         }
     }
 

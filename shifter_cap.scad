@@ -15,6 +15,7 @@ outline = "left_shifter_outline.svg";
 wall_thickness = 1;
 cap_height = 2;
 show_base_outline = false;
+base_height = 5.5;
 
 // Screw tube parameters
 screw_head_diameter = 7;
@@ -31,23 +32,38 @@ trigger_slot_cutout_height = 4;
 cable_hole_diameter = 9;
 
 
-// ===== DOME MODULE =====
+// ===== MODULES =====
 
-module dome(height, layers, wall_offset = 0) {
-    for (i = [0 : layers - 1]) {
-        z = i * (height / layers);
-        progress = i / layers;
-        // Parabolic curve - gentle rounded dome
-        scale_factor = 1 - (progress * progress) * 0.7;
+module dome(height, layers, base_h = 0, wall_offset = 0) {
 
-        translate([0, 0, z])
-            linear_extrude(height = height / layers + 0.1)
-                scale([scale_factor, scale_factor, 1])
-                    offset(r = wall_offset)
-                        scale([svg_scale, svg_scale, 1])
-                            import(file = silhouette, center = true);
+    // Vertical base section ---
+    linear_extrude(height = base_h + 0.1)
+        offset(r = wall_offset)
+            scale([svg_scale, svg_scale, 1])
+                import(file = silhouette, center = true);
+
+    // Dome section above the base
+    dome_h = height - base_h;
+    layer_h = dome_h / layers;
+
+    translate([0, 0, base_h]) {
+        for (i = [0 : layers - 1]) {
+
+            z = i * layer_h;
+            progress = i / layers;  // 0 → 1 over the dome only
+
+            scale_factor = 1 - (progress * progress) * 0.7;
+
+            translate([0, 0, z])
+                linear_extrude(height = layer_h + 0.1)
+                    scale([scale_factor, scale_factor, 1])
+                        offset(r = wall_offset)
+                            scale([svg_scale, svg_scale, 1])
+                                import(file = silhouette, center = true);
+        }
     }
 }
+
 
 module void_bar_curve(width=16, height=6.5, thickness=3, resolution=60, center=false) {
 
@@ -90,9 +106,9 @@ difference() {
             union() {
                 // Hollow dome
                 difference() {
-                    dome(dome_height, layers);
+                    dome(dome_height, layers, base_height);
                     translate([0, 0, -cap_height])
-                        dome(dome_height, layers, -wall_thickness);
+                        dome(dome_height, layers, base_height, -wall_thickness);
                 }
 
                 // Tubes extending above dome
@@ -105,7 +121,7 @@ difference() {
 
             // Cut everything to dome outer shape
             translate([0, 0, -1])
-                dome(dome_height + 1, layers);
+                dome(dome_height + 1, layers, base_height);
         }
 
         // Drill screw holes

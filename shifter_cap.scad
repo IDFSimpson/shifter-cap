@@ -49,9 +49,33 @@ module dome(height, layers, wall_offset = 0) {
     }
 }
 
+module void_bar_curve(width=16, height=6.5, thickness=3, resolution=60, center=false) {
+
+    // Helper function for the curve calculation
+    function curve_y(x) = (-0.016 * pow(x, 2)) - (0.16 * x) + 6.6;
+
+    // Generate the profile points
+    points = concat(
+        [for (i = [0 : resolution])
+            let (x = i * width / resolution)
+            [x, curve_y(x)]
+        ],
+        [[width, height], [0, height]]
+    );
+
+    // Centering logic
+    x_offset = center ? -width / 2 : 0;
+    y_offset = center ? -thickness / 2 : 0;
+
+    translate([x_offset, y_offset, height])
+    rotate([-90, 0, 0])
+    linear_extrude(height = thickness)
+        polygon(points);
+}
+
 
 module void_trigger_slot(cutout_width = 22.5, cutout_height = 6) {
-            cube([cutout_width, 10, cutout_height], center = true);
+    cube([cutout_width, 10, cutout_height], center = true);
 }
 
 
@@ -103,6 +127,17 @@ difference() {
     translate([-20, -34, 0])
         rotate([90, 0, -50.5])
             cylinder(h = 20, d = cable_hole_diameter, center = true, $fn = 40);
+
+    // Handlebar attachhment clamp cutout
+    translate([18.3,25,0]){
+        // Box section
+        translate([9.5,1.1,0])
+            rotate([0,0,-22])
+                cube([4,9,5]);
+        // Curved section
+        rotate([0,0,27])
+            void_bar_curve();
+    }
 }
 
 // ===== DEBUG: Base outline for positioning screws =====

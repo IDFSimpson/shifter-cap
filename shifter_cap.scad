@@ -37,13 +37,22 @@ cable_hole_diameter = 9;
 
 // ===== MODULES =====
 
+module silhouette_cache(wall_offset = 0) {
+    offset(r = wall_offset)
+        scale([svg_scale, svg_scale, 1])
+            import(file = silhouette, center = true);
+}
+
 module dome(height, layers, base_h = 0, wall_offset = 0) {
+
+    // Cache silhouette once
+    module base_shape() {
+        silhouette_cache(wall_offset);
+    }
 
     // Vertical base section ---
     linear_extrude(height = base_h + 0.1)
-        offset(r = wall_offset)
-            scale([svg_scale, svg_scale, 1])
-                import(file = silhouette, center = true);
+        base_shape();
 
     // Dome section above the base
     dome_h = height - base_h;
@@ -60,9 +69,7 @@ module dome(height, layers, base_h = 0, wall_offset = 0) {
             translate([0, 0, z])
                 linear_extrude(height = layer_h + 0.1)
                     scale([scale_factor, scale_factor, 1])
-                        offset(r = wall_offset)
-                            scale([svg_scale, svg_scale, 1])
-                                import(file = silhouette, center = true);
+                        base_shape();
         }
     }
 }

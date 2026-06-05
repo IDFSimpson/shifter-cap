@@ -97,47 +97,52 @@ module void_trigger_slot(cutout_width = 22.5, cutout_height = 6) {
     cube([cutout_width, 10, cutout_height], center = true);
 }
 
+module screw_tubes(positions, dome_height, outer_diameter)  {
+    for (pos = positions) {
+        tube_depth = dome_height - pos.z;
+        translate([pos.x, pos.y, dome_height - tube_depth])
+            cylinder(h = tube_depth + 5, d = outer_diameter, $fn = 40);
+    }
+}
+
+module screw_holes(positions, dome_height, screw_diameter, head_diameter){
+    for (pos = positions) {
+        tube_depth = dome_height - pos.z;
+        translate([pos.x, pos.y, dome_height - tube_depth - 0.1]){
+            cylinder(h = tube_depth + 10, d = screw_diameter, $fn = 30);
+            translate([0, 0, 1])
+                cylinder(h = tube_depth + 10, d = head_diameter, $fn = 30);
+        }
+    }
+}
+
 
 // ===== BUILD =====
 
 module build_shifter() {
     difference() {
-        // Main dome with screw tubes
-        difference() {
-            // Combine dome and tubes, then cut tubes to dome shape
-            intersection() {
-                // Bounding box that includes tubes
-                union() {
-                    // Hollow dome
-                    difference() {
-                        dome(dome_height, layers, base_height);
-                        translate([0, 0, -cap_height])
-                            dome(dome_height, layers, base_height, -wall_thickness);
-                    }
-
-                    // Tubes extending above dome
-                    for (pos = screw_positions) {
-                        tube_depth = dome_height - pos.z;
-                        translate([pos.x, pos.y, dome_height - tube_depth])
-                            cylinder(h = tube_depth + 5, d = tube_outer_diameter, $fn = 40);
-                    }
+        // Combine dome and tubes, then cut tubes to dome shape
+        intersection() {
+            // Bounding box that includes tubes
+            union() {
+                // Hollow dome
+                difference() {
+                    dome(dome_height, layers, base_height);
+                    translate([0, 0, -cap_height])
+                        dome(dome_height, layers, base_height, -wall_thickness);
                 }
 
-                // Cut everything to dome outer shape
-                translate([0, 0, -1])
-                    dome(dome_height + 1, layers, base_height);
+                // Tubes extending above dome
+                screw_tubes(screw_positions, dome_height, tube_outer_diameter);
             }
 
-            // Drill screw holes
-            for (pos = screw_positions) {
-                tube_depth = dome_height - pos.z;
-                translate([pos.x, pos.y, dome_height - tube_depth - 0.1]){
-                    cylinder(h = tube_depth + 10, d = screw_diameter, $fn = 30);
-                    translate([0, 0, 1])
-                        cylinder(h = tube_depth + 10, d = screw_head_diameter, $fn = 30);
-                }
-            }
+            // Cut everything to dome outer shape
+            translate([0, 0, -1])
+                dome(dome_height + 1, layers, base_height);
         }
+
+        // Drill screw holes
+        screw_holes(screw_positions, dome_height, screw_diameter, screw_head_diameter);
 
         // Trigger slot
         translate([0, 27, trigger_slot_cutout_height/2])

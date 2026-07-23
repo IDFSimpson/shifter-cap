@@ -34,6 +34,27 @@ trigger_slot_cutout_width = 22.5;
 trigger_slot_cutout_height = 4;
 cable_hole_diameter = 9;
 
+// Gear window parameters (viewing window for the selected-gear indicator)
+// -----------------------------------------------------------------
+// Same pattern as the screw tubes: the boss is deliberately oversized so
+// it overshoots the dome's true outer surface, then sits inside the same
+// intersection() as screw_tubes, which trims that overshoot away and
+// leaves it flush - no need to know or calculate where the curved
+// surface actually is. gear_window_boss_reach is the boss's known INNER
+// face (into the cavity), used as the anchor for the lip cut.
+gear_window_enable        = false;
+gear_window_pos           = [14, -8, 9];   // [x, y, z] - roughly on the dome's wall
+gear_window_rot           = [0, 55, 0];    // aims the boss/hole's local Z axis through the wall
+
+gear_window_dia           = 7;     // the visible opening - this is the size of the "glass"
+gear_window_lip_width     = 1.2;   // how much wider the inner counterbore is than the window (the glue ledge)
+gear_window_lip_depth     = 1;     // how deep the counterbore is cut, starting from the boss's inner face
+gear_window_boss_pad      = 1.5;   // extra material around the counterbore, for strength
+gear_window_boss_dia      = gear_window_dia + 2 * (gear_window_lip_width + gear_window_boss_pad);
+gear_window_boss_reach    = 6;     // how far inward (into the cavity) the boss reaches from gear_window_pos
+gear_window_boss_overshoot = 8;    // how far outward past gear_window_pos the boss extends - just needs
+                                    // to exceed the dome's wall thickness here; intersection() trims the rest
+
 
 // ===== MODULES =====
 
@@ -123,6 +144,38 @@ module screw_holes(positions, dome_height, screw_diameter, head_diameter){
     }
 }
 
+// Oversized cylinder reaching from a known point inside the cavity
+// (gear_window_boss_reach) out past the dome's true outer surface
+// (gear_window_boss_overshoot). Sits inside the same intersection() as
+// screw_tubes, which trims the overshoot to match the curved surface
+// exactly - same trick, no manual surface-tracking needed.
+module gear_window_boss() {
+    translate(gear_window_pos)
+        rotate(gear_window_rot)
+            translate([0, 0, -gear_window_boss_reach])
+                cylinder(h = gear_window_boss_reach + gear_window_boss_overshoot, d = gear_window_boss_dia, $fn = 60);
+}
+
+// Two cylinders removed from the boss. The through-hole (the visible
+// window) is drilled well past both ends, since we don't know exactly
+// where intersection() ended up trimming the boss's outer face - same
+// idea as screw_holes drilling past the tube's known length. The
+// counterbore / lip is anchored to the boss's KNOWN inner face instead,
+// cut outward by gear_window_lip_depth, leaving a flat shoulder for a
+// clear plastic disc to be glued onto from inside.
+module gear_window_cut() {
+    translate(gear_window_pos)
+        rotate(gear_window_rot) {
+            // Through-hole - the viewing window, well past both ends
+            translate([0, 0, -gear_window_boss_reach - 1])
+                cylinder(h = gear_window_boss_reach + gear_window_boss_overshoot + 2, d = gear_window_dia, $fn = 60);
+
+            // Counterbore / lip - cut from the boss's known inner face
+            translate([0, 0, -gear_window_boss_reach])
+                cylinder(h = gear_window_lip_depth, d = gear_window_dia + 2 * gear_window_lip_width, $fn = 60);
+        }
+}
+
 
 // ===== BUILD =====
 
@@ -141,6 +194,13 @@ module build_shifter() {
 
                 // Tubes extending above dome
                 screw_tubes(screw_positions, dome_height, tube_outer_diameter);
+
+                // Gear window boss - same trick as the tubes above: it
+                // overshoots the dome's true outer surface, and this
+                // intersection() trims that overshoot away, leaving it
+                // flush with the curved skin automatically.
+                if (gear_window_enable)
+                    gear_window_boss();
             }
 
             // Cut everything to dome outer shape
@@ -170,6 +230,10 @@ module build_shifter() {
             rotate([0,0,27])
                 void_bar_curve();
         }
+
+        // Gear window
+        if (gear_window_enable)
+            gear_window_cut();
     }
 
     // ===== DEBUG: Base outline for positioning screws =====
